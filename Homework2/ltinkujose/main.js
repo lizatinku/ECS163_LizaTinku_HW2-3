@@ -70,7 +70,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("y", 5)
         .attr("font-size", "24px")
         .attr("text-anchor", "middle")
-        .text("Global Terrorist Attacks over the years");
+        .text("Global Terrorism Attacks over the years");
     
     // X label
     g1.append("text")
@@ -131,72 +131,143 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
                 .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
                 .attr("transform", `translate(${distrLeft}, ${distrTop})`);
 
-    //plot 2: Bar Chart for Team Player Count
+    
+    //Plot 2: Node-Link Diagram - Regions and Attack Types
+    const linkCounts = {};
 
-    const teamCounts = processedData.reduce((s, { teamID }) => (s[teamID] = (s[teamID] || 0) + 1, s), {});
-    const teamData = Object.keys(teamCounts).map((key) => ({ teamID: key, count: teamCounts[key] }));
-    console.log("teamData", teamData);
+    processedData.forEach(d => {
+        const key = d.region + "||" + d.attackType;
 
+        if (!linkCounts[key]) {
+            linkCounts[key] = {
+                source: d.region,
+                target: d.attackType,
+                count: 0
+            };
+        }
+
+        linkCounts[key].count++;
+    });
+
+    const links = Object.values(linkCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 30);
+
+    console.log("node-link links", links);
+
+    const nodeNames = Array.from(new Set(
+    links.flatMap(d => [d.source, d.target])
+    ));
+
+    const nodes = nodeNames.map(name => {
+        return { id: name };
+    });
+
+    console.log("node-link nodes", nodes);
 
     const g3 = svg.append("g")
-                .attr("width", teamWidth + teamMargin.left + teamMargin.right)
-                .attr("height", teamHeight + teamMargin.top + teamMargin.bottom)
-                .attr("transform", `translate(${teamMargin.left}, ${teamTop})`);
-
-    // X label
+    .attr("transform", "translate(480, 100)");
+    
     g3.append("text")
-    .attr("x", teamWidth / 2)
-    .attr("y", teamHeight + 50)
-    .attr("font-size", "20px")
-    .attr("text-anchor", "middle")
-    .text("Team");
-
-    // Y label
-    g3.append("text")
-    .attr("x", -(teamHeight / 2))
+    .attr("x", 250)
     .attr("y", -40)
-    .attr("font-size", "20px")
+    .attr("font-size", "22px")
     .attr("text-anchor", "middle")
-    .attr("transform", "rotate(-90)")
-    .text("Number of players");
+    .text("Node-Link Diagram: Global Terrorism");
+    
+    const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links)
+            .id(d => d.id)
+            .distance(120))
+        .force("charge", d3.forceManyBody().strength(-250))
+        .force("center", d3.forceCenter(250, 200));
 
-    // X ticks
-    const x2 = d3.scaleBand()
-    .domain(teamData.map(d => d.teamID))
-    .range([0, teamWidth])
-    .paddingInner(0.3)
-    .paddingOuter(0.2);
+    const link = g3.selectAll("line")
+        .data(links)
+        .enter()
+        .append("line")
+        .attr("stroke", "#999")
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", d => Math.sqrt(d.count) / 15);
+    
+    const node = g3.selectAll("circle")
+        .data(nodes)
+        .enter()
+        .append("circle")
+        .attr("r", 8)
+        .attr("fill", d => {
+            const regions = processedData.map(p => p.region);
+            if (regions.includes(d.id)) {
+                return "#b22222";
+            } else {
+                return "#ff8c00";
+            }
+        });
 
-    const xAxisCall2 = d3.axisBottom(x2);
-    g3.append("g")
-    .attr("transform", `translate(0, ${teamHeight})`)
-    .call(xAxisCall2)
-    .selectAll("text")
-        .attr("y", "10")
-        .attr("x", "-5")
-        .attr("text-anchor", "end")
-        .attr("transform", "rotate(-40)");
+    const label = g3.selectAll("text")
+        .data(nodes)
+        .enter()
+        .append("text")
+        .text(d => d.id)
+        .attr("font-size", "10px")
+        .attr("dx", 10)
+        .attr("dy", 4);
+    
+    simulation.on("tick", () => {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
-    // Y ticks
-    const y2 = d3.scaleLinear()
-    .domain([0, d3.max(teamData, d => d.count)])
-    .range([teamHeight, 0])
-    .nice();
+        node
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
 
-    const yAxisCall2 = d3.axisLeft(y2)
-                        .ticks(6);
-    g3.append("g").call(yAxisCall2);
+        label
+            .attr("x", d => d.x)
+            .attr("y", d => d.y);
+    });
 
-    // bars
-    const bars = g3.selectAll("rect").data(teamData);
+    // Legend
+    g3.append("circle")
+        .attr("cx", 470)
+        .attr("cy", -20)
+        .attr("r", 7)
+        .attr("fill", "#b22222");
 
-    bars.enter().append("rect")
-    .attr("y", d => y2(d.count))
-    .attr("x", d => x2(d.teamID))
-    .attr("width", x2.bandwidth())
-    .attr("height", d => teamHeight - y2(d.count))
-    .attr("fill", "steelblue");
+    g3.append("text")
+        .attr("x", 490)
+        .attr("y", -15)
+        .text("Region")
+        .attr("font-size", "12px");
 
+    g3.append("circle")
+        .attr("cx", 470)
+        .attr("cy", 5)
+        .attr("r", 7)
+        .attr("fill", "#ff8c00");
+
+    g3.append("text")
+        .attr("x", 500)
+        .attr("y", 10)
+        .text("Attack Type")
+        .attr("font-size", "12px");
+
+    g3.append("line")
+        .attr("x1", 465)
+        .attr("y1", 30)
+        .attr("x2", 480)
+        .attr("y2", 30)
+        .attr("stroke", "#999")
+        .attr("stroke-width", 4);
+
+    g3.append("text")
+        .attr("x", 500)
+        .attr("y", 35)
+        .text("Thicker line = more Frequency")
+        .attr("font-size", "12px");
+    console.log("node-link nodes", nodes);
 
     }).catch(function(error){
     console.log(error);
