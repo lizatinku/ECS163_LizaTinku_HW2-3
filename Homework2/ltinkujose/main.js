@@ -56,21 +56,20 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 
     console.log("attacksByYear", attacksByYear);
 
-    //plot 1: Line Chart: Attacks Per Year
+    //Plot 1: Line Chart
     const svg = d3.select("svg");
 
     const g1 = svg.append("g")
                 .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
                 .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
                 .attr("transform", `translate(100, 60)`);
-                // .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
 
     g1.append("text")
-        .attr("x", 220)
-        .attr("y", 5)
+        .attr("x", 260)
+        .attr("y", -2)
         .attr("font-size", "24px")
         .attr("text-anchor", "middle")
-        .text("Global Terrorism Attacks over the years");
+        .text("Line chart: Global Terrorism Attacks over the years");
     
     // X label
     g1.append("text")
@@ -91,11 +90,13 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 
     // X ticks
     const x1 = d3.scaleLinear()
-    .domain(d3.extent(attacksByYear, d => d.year))
+    // .domain(d3.extent(attacksByYear, d => d.year))
+    .domain([1970, 2017])
     .range([0, scatterWidth]);
 
     const xAxisCall = d3.axisBottom(x1)
-                        .ticks(7);
+                        .tickValues([1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015])
+                        .tickFormat(d3.format("d"));
     g1.append("g")
     .attr("transform", `translate(0, ${scatterHeight})`)
     .call(xAxisCall)
@@ -123,8 +124,20 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("stroke", "red")
         .attr("stroke-width", 2)
         .attr("d", line);
+    
+    g1.append("line")
+        .attr("x1", 360)
+        .attr("y1", 20)
+        .attr("x2", 390)
+        .attr("y2", 20)
+        .attr("stroke", "red")
+        .attr("stroke-width", 3);
 
-    // circles
+    g1.append("text")
+        .attr("x", 400)
+        .attr("y", 25)
+        .text("Total Attacks")
+        .attr("font-size", "12px");
 
     const g2 = svg.append("g")
                 .attr("width", distrWidth + distrMargin.left + distrMargin.right)
@@ -132,7 +145,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
                 .attr("transform", `translate(${distrLeft}, ${distrTop})`);
 
     
-    //Plot 2: Node-Link Diagram - Regions and Attack Types
+//Plot 2: Node-Link Diagram
     const linkCounts = {};
 
     processedData.forEach(d => {
@@ -165,15 +178,15 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 
     console.log("node-link nodes", nodes);
 
-    const g3 = svg.append("g")
-    .attr("transform", "translate(480, 100)");
+    const g3 = svg.append("g") // to move plot as a whole
+    .attr("transform", "translate(950, 100)");
     
     g3.append("text")
     .attr("x", 250)
     .attr("y", -40)
     .attr("font-size", "22px")
     .attr("text-anchor", "middle")
-    .text("Node-Link Diagram: Global Terrorism");
+    .text("Node-Link Diagram: Terrorism Regions and Types");
     
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links)
@@ -231,44 +244,173 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 
     // Legend
     g3.append("circle")
-        .attr("cx", 470)
+        .attr("cx", -40)
         .attr("cy", -20)
         .attr("r", 7)
         .attr("fill", "#b22222");
 
     g3.append("text")
-        .attr("x", 490)
+        .attr("x", -20)
         .attr("y", -15)
         .text("Region")
         .attr("font-size", "12px");
 
     g3.append("circle")
-        .attr("cx", 470)
+        .attr("cx", -40)
         .attr("cy", 5)
         .attr("r", 7)
         .attr("fill", "#ff8c00");
 
     g3.append("text")
-        .attr("x", 500)
+        .attr("x", -20)
         .attr("y", 10)
         .text("Attack Type")
         .attr("font-size", "12px");
 
     g3.append("line")
-        .attr("x1", 465)
+        .attr("x1", -45)
         .attr("y1", 30)
-        .attr("x2", 480)
+        .attr("x2", -15)
         .attr("y2", 30)
         .attr("stroke", "#999")
         .attr("stroke-width", 4);
 
     g3.append("text")
-        .attr("x", 500)
+        .attr("x", -5)
         .attr("y", 35)
         .text("Thicker line = more Frequency")
         .attr("font-size", "12px");
     console.log("node-link nodes", nodes);
 
+    // Plot 3: Streamgraph
+    const g4 = svg.append("g")
+        .attr("transform", "translate(100, 450)"); // to move plot as a whole
+
+    g4.append("text")
+        .attr("x", 470)
+        .attr("y", 10)
+        .attr("font-size", "24px")
+        .attr("text-anchor", "middle")
+        .text("Stream Graph: Terrorism Attack Types Over Time");
+
+    const selectedTypes = [
+        "Bombing/Explosion",
+        "Armed Assault",
+        "Assassination",
+        "Hostage Taking (Kidnapping)"
+    ];
+
+    const filteredStreamData = processedData.filter(d =>
+        selectedTypes.includes(d.attackType)
+    ); 
+
+    const years = Array.from(new Set(
+        filteredStreamData.map(d => d.year)
+    )).sort((a, b) => a - b);
+
+    const streamData = years.map(year => {
+        const row = { year: year };
+
+        selectedTypes.forEach(type => {
+            row[type] = filteredStreamData.filter(d =>
+                d.year === year && d.attackType === type
+            ).length;
+        });
+
+        return row;
+    });
+
+    console.log("streamData", streamData);
+
+    const stack = d3.stack()
+    .keys(selectedTypes)
+    .offset(d3.stackOffsetWiggle);
+    const stackedData = stack(streamData);
+
+
+    const x3 = d3.scaleLinear()
+        .domain(d3.extent(years))
+        .range([0, 800]);
+
+    const y3 = d3.scaleLinear()
+        .domain([
+            d3.min(stackedData, layer => d3.min(layer, d => d[0])),
+            d3.max(stackedData, layer => d3.max(layer, d => d[1]))
+        ])
+        .range([300, 0]);
+
+    const area = d3.area()
+    .x(d => x3(d.data.year))
+    .y0(d => y3(d[0]))
+    .y1(d => y3(d[1]))
+    .curve(d3.curveBasis);
+
+    const color = d3.scaleOrdinal()
+        .domain(selectedTypes)
+        .range(["#b22222", "#4682b4", "#2e8b57", "#ff8c00"]);
+    
+        g4.selectAll(".stream-layer")
+        .data(stackedData)
+        .enter()
+        .append("path")
+        .attr("class", "stream-layer")
+        .attr("d", area)
+        .attr("fill", d => color(d.key))
+        .attr("opacity", 0.85);
+    
+    // Legend
+    const legendData = [
+        { name: "Bombing/Explosion", color: "#b22222" },
+        { name: "Armed Assault", color: "#4682b4" },
+        { name: "Assassination", color: "#2e8b57" },
+        { name: "Hostage Taking", color: "#ff8c00" }
+    ];
+
+    const legend = g4.selectAll(".stream-legend")
+        .data(legendData)
+        .enter()
+        .append("g")
+        .attr("transform", (d, i) => `translate(880, ${160 +i * 25})`);
+
+    legend.append("circle")
+        .attr("r", 7)
+        .attr("fill", d => d.color);
+
+    legend.append("text")
+        .attr("x", 15)
+        .attr("y", 10)
+        .text(d => d.name)
+        .attr("font-size", "14px");
+    
+    const xAxis3 = d3.axisBottom(x3)
+        .tickFormat(d3.format("d"));
+
+    g4.append("g")
+        .attr("transform", "translate(0, 300)")
+        .call(xAxis3);
+
+    const yAxis3 = d3.axisLeft(y3);
+
+    g4.append("g")
+        .call(yAxis3);
+    
+    // X Label
+    g4.append("text")
+        .attr("x", 500)
+        .attr("y", 350)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .text("Year");
+
+    // Y Label
+    g4.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -200)
+        .attr("y", -60)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .text("Attack Frequency");
+    
     }).catch(function(error){
     console.log(error);
 });
