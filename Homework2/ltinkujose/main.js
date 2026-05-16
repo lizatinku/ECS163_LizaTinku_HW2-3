@@ -47,6 +47,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         yearCounts[d.year]++;
     });
 
+// This section prepares yearly attack totals for the line chart overview visualization
     const attacksByYear = Object.keys(yearCounts).map(year => {
         return {
             year: Number(year),
@@ -59,11 +60,13 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     //Plot 1: Line Chart
     const svg = d3.select("svg");
 
+// Create SVG group container for the overview line chart layout
     const g1 = svg.append("g")
                 .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
                 .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
                 .attr("transform", `translate(100, 60)`);
 
+// This section adds the title describing the overall terrorism trend visualization
     g1.append("text")
         .attr("x", 260)
         .attr("y", -2)
@@ -71,7 +74,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("text-anchor", "middle")
         .text("Line chart: Global Terrorism Attacks over the years");
     
-    // X label
+// X label
     g1.append("text")
     .attr("x", scatterWidth / 2)
     .attr("y", scatterHeight + 60)
@@ -79,7 +82,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     .attr("text-anchor", "middle")
     .text("Year");
 
-    // Y label
+// Y label
     g1.append("text")
     .attr("x", -(scatterHeight / 2))
     .attr("y", -50)
@@ -88,12 +91,13 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     .attr("transform", "rotate(-90)")
     .text("Number of Attacks");
 
-    // X ticks
+// X ticks
     const x1 = d3.scaleLinear()
     // .domain(d3.extent(attacksByYear, d => d.year))
     .domain([1970, 2017])
     .range([0, scatterWidth]);
 
+// This section creates and formats the x-axis labels for the line chart timeline
     const xAxisCall = d3.axisBottom(x1)
                         .tickValues([1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015])
                         .tickFormat(d3.format("d"));
@@ -106,6 +110,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("text-anchor", "end")
         .attr("transform", "rotate(-40)");
 
+// This section creates the y-axis scale and generates the line path for yearly attack counts
     const y1 = d3.scaleLinear()
     .domain([0, d3.max(attacksByYear, d => d.count)])
     .range([scatterHeight, 0]);
@@ -118,6 +123,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     .x(d => x1(d.year))
     .y(d => y1(d.count));
 
+// This section draws the attack trend line and adds a legend
     g1.append("path")
         .datum(attacksByYear)
         .attr("fill", "none")
@@ -139,6 +145,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .text("Total Attacks")
         .attr("font-size", "12px");
 
+// This section creates the container for additional dashboard visualizations
     const g2 = svg.append("g")
                 .attr("width", distrWidth + distrMargin.left + distrMargin.right)
                 .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
@@ -148,6 +155,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 //Plot 2: Node-Link Diagram
     const linkCounts = {};
 
+// This section counts connections between regions and attack types
     processedData.forEach(d => {
         const key = d.region + "||" + d.attackType;
 
@@ -162,12 +170,12 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         linkCounts[key].count++;
     });
 
+// This section creates the nodes and strongest links for the node-link diagram
     const links = Object.values(linkCounts)
         .sort((a, b) => b.count - a.count)
         .slice(0, 30);
 
     console.log("node-link links", links);
-
     const nodeNames = Array.from(new Set(
     links.flatMap(d => [d.source, d.target])
     ));
@@ -180,14 +188,16 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
 
     const g3 = svg.append("g") // to move plot as a whole
     .attr("transform", "translate(950, 100)");
-    
+
+// This section adds the title for the node-link visualization
     g3.append("text")
     .attr("x", 250)
     .attr("y", -40)
     .attr("font-size", "22px")
     .attr("text-anchor", "middle")
     .text("Node-Link Diagram: Terrorism Regions and Types");
-    
+
+// This section creates the force simulation layout for the node-link diagram
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links)
             .id(d => d.id)
@@ -195,6 +205,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .force("charge", d3.forceManyBody().strength(-250))
         .force("center", d3.forceCenter(250, 200));
 
+// This section draws the links connecting regions and attack types
     const link = g3.selectAll("line")
         .data(links)
         .enter()
@@ -202,7 +213,8 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
         .attr("stroke-width", d => Math.sqrt(d.count) / 15);
-    
+
+// This section colors and labels the nodes for regions and attack types
     const node = g3.selectAll("circle")
         .data(nodes)
         .enter()
@@ -226,6 +238,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("dx", 10)
         .attr("dy", 4);
     
+// This section updates node and link positions during the force simulation
     simulation.on("tick", () => {
         link
             .attr("x1", d => d.source.x)
@@ -242,7 +255,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
             .attr("y", d => d.y);
     });
 
-    // Legend
+// This section adds legend color-text pairs for regions, attack types, and link frequency
     g3.append("circle")
         .attr("cx", -40)
         .attr("cy", -20)
@@ -286,6 +299,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     const g4 = svg.append("g")
         .attr("transform", "translate(100, 450)"); // to move plot as a whole
 
+// This section adds the streamgraph title and selects major attack types to visualize
     g4.append("text")
         .attr("x", 470)
         .attr("y", 10)
@@ -300,6 +314,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         "Hostage Taking (Kidnapping)"
     ];
 
+// This section groups attack type counts by year for the streamgraph
     const filteredStreamData = processedData.filter(d =>
         selectedTypes.includes(d.attackType)
     ); 
@@ -327,7 +342,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
     .offset(d3.stackOffsetWiggle);
     const stackedData = stack(streamData);
 
-
+// This section creates the x and y scales for the streamgraph axes
     const x3 = d3.scaleLinear()
         .domain(d3.extent(years))
         .range([0, 800]);
@@ -339,6 +354,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         ])
         .range([300, 0]);
 
+// This section creates colored streamgraph layers for each attack type
     const area = d3.area()
     .x(d => x3(d.data.year))
     .y0(d => y3(d[0]))
@@ -366,6 +382,7 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         { name: "Hostage Taking", color: "#ff8c00" }
     ];
 
+// This section adds legend color-text pairs for the streamgraph attack types
     const legend = g4.selectAll(".stream-legend")
         .data(legendData)
         .enter()
@@ -381,7 +398,8 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
         .attr("y", 10)
         .text(d => d.name)
         .attr("font-size", "14px");
-    
+
+// This section creates and displays the streamgraph x and y axes
     const xAxis3 = d3.axisBottom(x3)
         .tickFormat(d3.format("d"));
 
