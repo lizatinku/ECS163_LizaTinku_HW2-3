@@ -18,7 +18,7 @@ let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
     teamHeight = height-450 - teamMargin.top - teamMargin.bottom;
 
 // Plots
-d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
+d3.csv("globalterrorismd.csv").then(rawData =>{
     console.log("rawData", rawData);
     rawData.forEach(function(d){
     d.iyear = Number(d.iyear);
@@ -151,7 +151,6 @@ d3.csv("data/globalterrorismdb_0718dist.csv").then(rawData =>{
                 .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
                 .attr("transform", `translate(${distrLeft}, ${distrTop})`);
 
-    
 //Plot 2: Node-Link Diagram
     const linkCounts = {};
 
