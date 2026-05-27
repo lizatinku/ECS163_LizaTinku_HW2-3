@@ -17,8 +17,12 @@ let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
     teamWidth = width - teamMargin.left - teamMargin.right,
     teamHeight = height-450 - teamMargin.top - teamMargin.bottom;
 
-// Plots
-d3.csv("globalterrorism_agg.csv").then(rawData =>{
+
+// Regarding dataset:
+// The original `globalterrorism.csv` dataset exceeds GitHub’s 100MB file upload limit, so for the assignment requirements, I pushed a file named `globalterrorism_agg.csv` which is a compressed version of the original dataset.
+// A compressed `.zip` version of the original terrorism dataset has also been included in the repository. After unzipping, the original datasets could be used for Homework 2 and Homework 3 to render the visualizations.
+
+d3.csv("globalterrorism.csv").then(rawData =>{
     console.log("rawData", rawData);
     rawData.forEach(function(d){
     d.iyear = Number(d.iyear);
