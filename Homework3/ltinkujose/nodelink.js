@@ -17,6 +17,12 @@ function drawNodeLink(processedData) {
         linkCounts[key].count++;
     });
 
+    console.log("South Asia rows:", processedData.filter(d => d.region === "South Asia").slice(0, 10));
+    console.log("Bombing rows:", processedData.filter(d => d.attackType === "Bombing/Explosion").slice(0, 10));
+
+    console.log("All unique regions:", Array.from(new Set(processedData.map(d => d.region))).sort());
+    console.log("All unique attack types:", Array.from(new Set(processedData.map(d => d.attackType))).sort());
+
     const links = Object.values(linkCounts)
         .sort((a, b) => b.count - a.count)
         .slice(0, 30);
@@ -25,10 +31,7 @@ function drawNodeLink(processedData) {
         links.flatMap(d => [d.source, d.target])
     ));
 
-    const nodes = nodeNames.map(name => {
-        return { id: name };
-    });
-
+    const nodes = nodeNames.map(name => ({ id: name }));
     const regions = Array.from(new Set(processedData.map(d => d.region)));
 
     const g3 = svg.append("g")
@@ -36,15 +39,16 @@ function drawNodeLink(processedData) {
 
     g3.append("text")
         .attr("x", 250)
-        .attr("y", -40)
+        .attr("y", -50)
         .attr("font-size", "22px")
         .attr("text-anchor", "middle")
         .text("Node-Link Diagram: Terrorism Regions and Types");
 
+    const infoBox = g3.append("g")
+        .attr("class", "node-info-box");
+
     const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links)
-            .id(d => d.id)
-            .distance(120))
+        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
         .force("charge", d3.forceManyBody().strength(-250))
         .force("center", d3.forceCenter(250, 200));
 
@@ -76,8 +80,7 @@ function drawNodeLink(processedData) {
         .attr("dx", 10)
         .attr("dy", 4);
 
-    // HW3 interaction: click a node to highlight connected nodes/links
-    node.on("click", function(event, clickedNode) {
+    node.on("click", function(clickedNode) {
         const connectedNodeIds = new Set();
 
         links.forEach(l => {
@@ -90,46 +93,76 @@ function drawNodeLink(processedData) {
             }
         });
 
-        node.transition()
-            .duration(500)
-            .attr("opacity", d => connectedNodeIds.has(d.id) ? 1 : 0.15)
-            .attr("r", d => d.id === clickedNode.id ? 13 : 8);
+        const isRegion = regions.includes(clickedNode.id);
 
-        label.transition()
-            .duration(500)
-            .attr("opacity", d => connectedNodeIds.has(d.id) ? 1 : 0.15);
+        const matchingRows = processedData.filter(d => {
+            return isRegion ? d.region === clickedNode.id : d.attackType === clickedNode.id;
+        });
 
-        link.transition()
-            .duration(500)
-            .attr("stroke-opacity", l => {
-                const sourceId = typeof l.source === "object" ? l.source.id : l.source;
-                const targetId = typeof l.target === "object" ? l.target.id : l.target;
-                return sourceId === clickedNode.id || targetId === clickedNode.id ? 1 : 0.08;
-            })
-            .attr("stroke-width", l => {
-                const sourceId = typeof l.source === "object" ? l.source.id : l.source;
-                const targetId = typeof l.target === "object" ? l.target.id : l.target;
-                return sourceId === clickedNode.id || targetId === clickedNode.id
-                    ? Math.sqrt(l.count) / 8
-                    : Math.sqrt(l.count) / 15;
-            });
+        const connectionCounts = {};
+        matchingRows.forEach(d => {
+            const key = isRegion ? d.attackType : d.region;
+            connectionCounts[key] = (connectionCounts[key] || 0) + 1;
+        });
+
+        const topConnection = Object.entries(connectionCounts)
+            .sort((a, b) => b[1] - a[1])[0];
+
+        const totalKilled = d3.sum(matchingRows, d => d.killed);
+        const totalWounded = d3.sum(matchingRows, d => d.wounded);
+
+        infoBox.selectAll("*").remove();
+
+        infoBox.append("rect")
+            .attr("x", -80)
+            .attr("y", 10)
+            .attr("width", 270)
+            .attr("height", 95)
+            .attr("fill", "white")
+            .attr("stroke", "black")
+            .attr("rx", 8)
+            .attr("opacity", 0.95);
+
+        infoBox.append("text")
+            .attr("x", 200)
+            .attr("y", 10)
+            .attr("font-size", "15px")
+            .attr("font-weight", "bold")
+            .text(clickedNode.id);
+
+        infoBox.append("text")
+            .attr("x", -70)
+            .attr("y", 30)
+            .attr("font-size", "12px")
+            .text("Type: " + (isRegion ? "Region" : "Attack Type"));
+
+        infoBox.append("text")
+            .attr("x", -70)
+            .attr("y", 50)
+            .attr("font-size", "12px")
+            .text("Total attacks in dataset: " + matchingRows.length.toLocaleString());
+
+        infoBox.append("text")
+            .attr("x", -70)
+            .attr("y", 70)
+            .attr("font-size", "12px")
+            .text("Top connection: " + (topConnection ? topConnection[0] + " (" + topConnection[1].toLocaleString() + ")" : "None"));
+
+        infoBox.append("text")
+            .attr("x", -70)
+            .attr("y", 85)
+            .attr("font-size", "12px")
+            .text("Killed: " + totalKilled.toLocaleString() + " | Wounded: " + totalWounded.toLocaleString());
     });
 
-    // double click resets the node-link view
     node.on("dblclick", function() {
-        node.transition()
-            .duration(500)
-            .attr("opacity", 1)
-            .attr("r", 8);
-
-        label.transition()
-            .duration(500)
-            .attr("opacity", 1);
-
-        link.transition()
-            .duration(500)
+        node.transition().duration(500).attr("opacity", 1).attr("r", 8);
+        label.transition().duration(500).attr("opacity", 1);
+        link.transition().duration(500)
             .attr("stroke-opacity", 0.6)
             .attr("stroke-width", d => Math.sqrt(d.count) / 15);
+
+        infoBox.selectAll("*").remove();
     });
 
     simulation.on("tick", () => {
@@ -148,41 +181,13 @@ function drawNodeLink(processedData) {
             .attr("y", d => d.y);
     });
 
-    g3.append("circle")
-        .attr("cx", -40)
-        .attr("cy", -20)
-        .attr("r", 7)
-        .attr("fill", "#b22222");
+    g3.append("circle").attr("cx", 420).attr("cy", -20).attr("r", 7).attr("fill", "#b22222");
+    g3.append("text").attr("x", 440).attr("y", -15).text("Region").attr("font-size", "12px");
 
-    g3.append("text")
-        .attr("x", -20)
-        .attr("y", -15)
-        .text("Region")
-        .attr("font-size", "12px");
+    g3.append("circle").attr("cx", 420).attr("cy", 5).attr("r", 7).attr("fill", "#ff8c00");
+    g3.append("text").attr("x", 440).attr("y", 10).text("Attack Type").attr("font-size", "12px");
 
-    g3.append("circle")
-        .attr("cx", -40)
-        .attr("cy", 5)
-        .attr("r", 7)
-        .attr("fill", "#ff8c00");
-
-    g3.append("text")
-        .attr("x", -20)
-        .attr("y", 10)
-        .text("Attack Type")
-        .attr("font-size", "12px");
-
-    g3.append("line")
-        .attr("x1", -45)
-        .attr("y1", 30)
-        .attr("x2", -15)
-        .attr("y2", 30)
-        .attr("stroke", "#999")
-        .attr("stroke-width", 4);
-
-    g3.append("text")
-        .attr("x", -5)
-        .attr("y", 35)
-        .text("Thicker line = more Frequency")
-        .attr("font-size", "12px");
+    g3.append("line").attr("x1", 410).attr("y1", 30).attr("x2", 440).attr("y2", 30).attr("stroke", "#999").attr("stroke-width", 4);
+    g3.append("text").attr("x", 450).attr("y", 35).text("Thicker line = more Frequency").attr("font-size", "12px");
 }
+

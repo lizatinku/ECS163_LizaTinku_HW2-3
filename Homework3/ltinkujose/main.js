@@ -18,7 +18,7 @@ let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
     teamHeight = height-450 - teamMargin.top - teamMargin.bottom;
 
 // Plots
-d3.csv("../globalterrorism.csv").then(rawData =>{
+d3.csv("globalterrorism_agg.csv").then(rawData =>{
     console.log("rawData", rawData);
     rawData.forEach(function(d){
     d.iyear = Number(d.iyear);
@@ -56,11 +56,11 @@ d3.csv("../globalterrorism.csv").then(rawData =>{
     }).sort((a, b) => a.year - b.year);
 
     console.log("attacksByYear", attacksByYear);
-
-
+    
     drawLineChart(processedData);
     drawNodeLink(processedData);
     drawStreamGraph(processedData);
+    drawNorthAmericaYearSlider(processedData);
     
     }).catch(function(error){
     console.log(error);
