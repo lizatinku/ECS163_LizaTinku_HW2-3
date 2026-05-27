@@ -152,4 +152,44 @@ function drawStreamGraph(processedData) {
         .attr("y", 5)
         .text(d => d.name)
         .attr("font-size", "14px");
+
+    // This section creates a horizontal brush so users can select a year range on the streamgraph
+    const brush = d3.brushX()
+        .extent([[0, 0], [streamWidth, streamHeight]])
+        .on("brush end", brushed);
+
+    // This section adds the brush interaction layer on top of the streamgraph
+    g4.append("g")
+        .attr("class", "stream-brush")
+        .call(brush);
+
+    // This section fades streamgraph layers based on the selected brushed year range
+    function brushed() {
+        const selection = d3.event.selection;
+
+        if (!selection) {
+            layers.transition()
+                .duration(300)
+                .attr("opacity", 0.85);
+            return;
+        }
+
+        const selectedYears = selection.map(x3.invert);
+        const startYear = Math.round(selectedYears[0]);
+        const endYear = Math.round(selectedYears[1]);
+
+        layers.transition()
+            .duration(300)
+            .attr("opacity", 1);
+
+        g4.selectAll(".brush-label").remove();
+
+        g4.append("text")
+            .attr("class", "brush-label")
+            .attr("x", selection[0])
+            .attr("y", 40)
+            .attr("font-size", "12px")
+            .attr("font-weight", "bold")
+            .text(`${startYear}–${endYear}`);
+    }
 }
