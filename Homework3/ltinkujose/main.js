@@ -22,8 +22,11 @@ let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
 // The original `globalterrorism.csv` dataset exceeds GitHub’s 100MB file upload limit, so for the assignment requirements, I pushed a file named `globalterrorism_agg.csv` which is a compressed version of the original dataset.
 // A compressed `.zip` version of the original terrorism dataset has also been included in the repository. After unzipping, the original datasets could be used for Homework 2 and Homework 3 to render the visualizations.
 
+// This section loads the terrorism dataset using D3
 d3.csv("globalterrorism.csv").then(rawData =>{
     console.log("rawData", rawData);
+
+    // This section converts numeric columns from strings into numbers for later visual encodings
     rawData.forEach(function(d){
     d.iyear = Number(d.iyear);
     d.nkill = Number(d.nkill) || 0;
@@ -31,6 +34,8 @@ d3.csv("globalterrorism.csv").then(rawData =>{
     });
 
     const filteredData = rawData;
+
+    // This section creates a simplified processed dataset used by all D3 visualizations
     const processedData = filteredData.map(d => {
     return {
         year: d.iyear,
@@ -44,6 +49,7 @@ d3.csv("globalterrorism.csv").then(rawData =>{
 
     const yearCounts = {};
 
+    // This section counts the number of terrorism attacks for each year
     processedData.forEach(d => {
         if (!yearCounts[d.year]) {
             yearCounts[d.year] = 0;
@@ -61,9 +67,16 @@ d3.csv("globalterrorism.csv").then(rawData =>{
 
     console.log("attacksByYear", attacksByYear);
     
+    // This section calls the D3 function that draws the line chart overview
     drawLineChart(processedData);
+
+    // This section calls the D3 function that draws the node-link diagram
     drawNodeLink(processedData);
+
+    // This section calls the D3 function that draws the streamgraph
     drawStreamGraph(processedData);
+
+    // This section calls the D3 function that draws the North America animated bar chart
     drawNorthAmericaYearSlider(processedData);
     
     }).catch(function(error){
